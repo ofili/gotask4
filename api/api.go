@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
 
@@ -52,38 +52,25 @@ func CreateBook(w http.ResponseWriter, r *http.Request) {
 	json.NewDecoder(r.Body).Decode(&book)
 	//Create new books by inserting records in the books table
 	db.Create(&book)
-	if r.Method != http.MethodPost {
-		http.Error(w, "Must be a post request", http.StatusInternalServerError)
-		return
-	}
-	book = Book{
-		Name:        r.FormValue("name"),
-		Author:      r.FormValue("author"),
-		PublishedAt: time.Now().Local().String(),
-	}
-	books = append(books, book)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(book)
 }
 
 //Read-all api
 func GetBooks(w http.ResponseWriter, r *http.Request) {
-	bk, err := json.Marshal(books)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(bk)
-	//w.Header().Set("Content-Type", "application/json")
-	//json.NewEncoder(w).Encode(books)
+	var books []Book
+	db.Find(&books)
+	json.NewEncoder(w).Encode(books)
 }
 
 //Read api
 func GetBook(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	param := r.URL.Query()["id"]
-	db.Where("id = ?", param).Find(&books)
+	params := mux.Vars(r)
+	inputBookID := params["id"]
+	var book Book
+	db.First(&book, inputBookID)
 	json.NewEncoder(w).Encode(books)
 }
 
